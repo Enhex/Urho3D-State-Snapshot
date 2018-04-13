@@ -88,6 +88,7 @@ void StateSnapshot::read_node(MemoryBuffer& message, Scene* scene)
 		read_component(message, node);
 }
 
+
 void StateSnapshot::read_component(MemoryBuffer& message, Node* node)
 {
 	// Read component ID
@@ -117,9 +118,6 @@ void StateSnapshot::read_component(MemoryBuffer& message, Node* node)
 }
 
 
-//
-// write_scene_state
-//
 void StateSnapshot::write_state(VectorBuffer& message, Scene* scene)
 {
 	// Write number of nodes
@@ -131,9 +129,6 @@ void StateSnapshot::write_state(VectorBuffer& message, Scene* scene)
 }
 
 
-//
-// write_node
-//
 void StateSnapshot::write_node(VectorBuffer& message, Node& node)
 {
 	// Write node ID
@@ -164,9 +159,6 @@ void StateSnapshot::write_node(VectorBuffer& message, Node& node)
 }
 
 
-//
-// write_component
-//
 void StateSnapshot::write_component(VectorBuffer& message, Component& component)
 {
 	// Write ID
@@ -178,9 +170,6 @@ void StateSnapshot::write_component(VectorBuffer& message, Component& component)
 }
 
 
-//
-// write_network_attributes
-//
 void StateSnapshot::write_network_attributes(Serializable& object, Serializer& dest)
 {
 	const auto attributes = object.GetNetworkAttributes();
@@ -200,9 +189,6 @@ void StateSnapshot::write_network_attributes(Serializable& object, Serializer& d
 }
 
 
-//
-// read_network_attributes
-//
 void StateSnapshot::read_network_attributes(Serializable& object, Deserializer& source)
 {
 	const auto attributes = object.GetNetworkAttributes();
@@ -215,19 +201,5 @@ void StateSnapshot::read_network_attributes(Serializable& object, Deserializer& 
 	{
 		const auto& attr = attributes->At(i);
 		object.OnSetAttribute(attr, source.ReadVariant(attr.type_));
-	}
-}
-
-void StateSnapshot::set_intercept_network_attributes(Serializable & object)
-{
-	const auto attributes = object.GetNetworkAttributes();
-	if (!attributes)
-		return;
-
-	const auto numAttributes = attributes->Size();
-
-	for (unsigned i = 0; i < numAttributes; ++i) {
-		const auto& attr = attributes->At(i);
-		object.SetInterceptNetworkUpdate(attr.name_, true);
 	}
 }

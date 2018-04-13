@@ -21,15 +21,10 @@ namespace Urho3D
 using namespace Urho3D;
 
 /*
-Client side prediction subsystem.
-Works alongside the Network subsystem.
-Usage:
-Add LOCAL nodes which you want to be predicted.
-Note: Uses the PhysicsWorld Fps as a fixed timestep.
+Used to create full state snapshots for its nodes.
 */
 struct StateSnapshot
 {
-	// Server: Add a node to the client side prediction
 	void add_node(Node* node);
 
 	/*
@@ -60,9 +55,6 @@ struct StateSnapshot
 	void write_network_attributes(Serializable& object, Serializer& dest);
 	// Read all the network attributes
 	void read_network_attributes(Serializable& object, Deserializer& source);
-
-	// Intercept network attributes to avoid replication overriding prediction
-	void set_intercept_network_attributes(Serializable& object);
 
 
 protected:
