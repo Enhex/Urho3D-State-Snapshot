@@ -25,6 +25,9 @@ Used to create full state snapshots for its nodes.
 */
 struct StateSnapshot
 {
+	// snapshot nodes
+	std::vector<WeakPtr<Node>> nodes;
+
 	void add_node(Node* node);
 
 	/*
@@ -58,8 +61,6 @@ struct StateSnapshot
 
 
 protected:
-	// snapshot nodes
-	std::vector<Node*> nodes;
 	// Reuseable hash set for tracking unused nodes
 	std::unordered_set<Node*> unused_nodes;
 };

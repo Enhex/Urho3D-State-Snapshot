@@ -13,7 +13,7 @@
 
 void StateSnapshot::add_node(Node* node)
 {
-	nodes.push_back(node);
+	nodes.emplace_back(node);
 }
 
 
@@ -123,9 +123,16 @@ void StateSnapshot::write_state(VectorBuffer& message, Scene* scene)
 	// Write number of nodes
 	message.WriteVLE(nodes.size());
 
+	// remove expired nodes
+	nodes.erase(std::remove_if(nodes.begin(), nodes.end(), [](WeakPtr<Node> const& node) {
+		return node.Expired();
+	}), nodes.end());
+
 	// Write nodes
-	for (auto node : nodes)
+	for (auto node : nodes) {
+		auto sp_node = node.Lock();
 		write_node(message, *node);
+	}
 }
 
 
