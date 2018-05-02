@@ -37,20 +37,20 @@ void StateSnapshot::read_state(MemoryBuffer& message, Scene* scene)
 }
 
 
-void StateSnapshot::read_node(MemoryBuffer& message, Scene* scene)
+void StateSnapshot::read_node(MemoryBuffer& message, Node* parent)
 {
 	auto node_id = message.ReadUInt();
-	auto node = scene->GetNode(node_id);
-	bool new_node = false;
+	auto node = parent->GetScene()->GetNode(node_id);
 
 	// Create the node if it doesn't exist
+	bool new_node = false;
 	if (!node)
 	{
 		new_node = true;
 		// Add initially to the root level. May be moved as we receive the parent attribute
-		node = scene->CreateChild(node_id, LOCAL);
+		node = parent->CreateChild(node_id, LOCAL);
 		// Create smoothed transform component
-		node->CreateComponent<SmoothedTransform>(LOCAL);
+		//node->CreateComponent<SmoothedTransform>();
 	}
 	else
 	{
@@ -86,6 +86,9 @@ void StateSnapshot::read_node(MemoryBuffer& message, Scene* scene)
 	unsigned num_components = message.ReadVLE();
 	for (; num_components > 0; --num_components)
 		read_component(message, node);
+
+	// read child nodes
+	read_child_nodes(message, node);
 }
 
 
@@ -100,8 +103,9 @@ void StateSnapshot::read_component(MemoryBuffer& message, Node* node)
 	auto component = node->GetScene()->GetComponent(componentID);
 	if (!component || component->GetType() != type || component->GetNode() != node)
 	{
-		if (component)
+		if (component) {
 			component->Remove();
+		}
 		component = node->CreateComponent(type, LOCAL, componentID);
 	}
 
@@ -115,6 +119,16 @@ void StateSnapshot::read_component(MemoryBuffer& message, Node* node)
 	// Read attributes and apply
 	read_network_attributes(*component, message);
 	component->ApplyAttributes();
+}
+
+void StateSnapshot::read_child_nodes(MemoryBuffer & message, Node * parent)
+{
+	// Read number of nodes
+	auto num_nodes = message.ReadVLE();
+
+	// Read nodes
+	for (; num_nodes-- > 0;)
+		read_node(message, parent);
 }
 
 
@@ -163,6 +177,9 @@ void StateSnapshot::write_node(VectorBuffer& message, Node& node)
 		auto component = components[i];
 		write_component(message, *component);
 	}
+
+	// write child nodes
+	write_child_nodes(message, node);
 }
 
 
@@ -174,6 +191,19 @@ void StateSnapshot::write_component(VectorBuffer& message, Component& component)
 	message.WriteStringHash(component.GetType());
 	// Write attributes
 	write_network_attributes(component, message);
+}
+
+void StateSnapshot::write_child_nodes(VectorBuffer & message, Node & parent)
+{
+	const auto& child_nodes = parent.GetChildren();
+
+	// write number of children
+	message.WriteVLE(child_nodes.Size());
+
+	// write nodes
+	for (auto node : child_nodes) {
+		write_node(message, *node);
+	}
 }
 
 
@@ -189,6 +219,9 @@ void StateSnapshot::write_network_attributes(Serializable& object, Serializer& d
 	for (unsigned i = 0; i < numAttributes; ++i)
 	{
 		const auto& attr = attributes->At(i);
+		if (attr.name_ == "Network Parent Node") // avoid overriding the actual parent
+			continue;
+
 		value.Clear();
 		object.OnGetAttribute(attr, value);
 		dest.WriteVariantData(value);
@@ -207,6 +240,9 @@ void StateSnapshot::read_network_attributes(Serializable& object, Deserializer& 
 	for (unsigned i = 0; i < numAttributes && !source.IsEof(); ++i)
 	{
 		const auto& attr = attributes->At(i);
+		if (attr.name_ == "Network Parent Node") // avoid overriding the actual parent
+			continue;
+
 		object.OnSetAttribute(attr, source.ReadVariant(attr.type_));
 	}
 }
